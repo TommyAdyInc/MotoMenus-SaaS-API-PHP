@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+
+.dockerignore
+.gitattributes
+.gitignore
+Dockerfile
+README.md
