@@ -1,61 +1,16 @@
-global-environment-variables: &environment-variables
-  AWS_ECR_URI: "000000000000.dkr.ecr.us-west-2.amazonaws.com"
-  AWS_REGION: "us-west-2"
-
 version: 2.1
-jobs:
-  build:
-    environment:
-      <<: *environment-variables
-
-    docker:
-      - image: docker:19.03.1
-
-    steps:
-      - checkout
-
-      - setup_remote_docker
-
-      - run:
-          name: Docker build.
-          command: |
-            set -x
-            LOWERCASE_REPONAME=`echo "${CIRCLE_PROJECT_REPONAME}" | tr '[:upper:]' '[:lower:]'`
-            docker build --tag="${LOWERCASE_REPONAME}" ./
-
-      - run:
-          name: Docker tag.
-          command: |
-            set -x
-            LOWERCASE_REPONAME=`echo "${CIRCLE_PROJECT_REPONAME}" | tr '[:upper:]' '[:lower:]'`
-            docker tag ${LOWERCASE_REPONAME} ${AWS_ECR_URI}/${LOWERCASE_REPONAME}:${CIRCLE_BRANCH}
-
-      - run:
-          name: Install the AWS Command Line Interface (CLI).
-          command: |
-            apk --no-cache add \
-            py-pip
-
-            pip install awscli --upgrade
-
-      # - deploy:
-      #     name: Get Docker login from ECR and then run the Docker login command.
-      #     command: |
-      #       DOCKER_LOGIN_CMD=`aws ecr get-login --region="${AWS_REGION}" --no-include-email`
-      #       ${DOCKER_LOGIN_CMD}
-
-      # - deploy:
-      #     name: Docker push.
-      #     command: |
-      #       set -x
-      #       docker push ${AWS_ECR_URI}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
-
+orbs:
+  aws-ecr: circleci/aws-ecr@6.2.0
 workflows:
   version: 2
   main-workflow:
     jobs:
-      - build:
+      - aws-ecr/build-and-push-image:
+          context: org-global
+          create-repo: true
           filters:
             branches:
               only:
                 - master
+          region: AWS_DEFAULT_REGION
+          repo: $(echo "$CIRCLE_PROJECT_REPONAME" | tr '[:upper:]' '[:lower:]')
